@@ -23,9 +23,9 @@ jobs:
         pip install -r requirements.txt
     - name: Set up Kaggle API credentials
       run: |
-        mkdir -p /root/.config/kaggle
-        echo "{\"username\":\"${{ secrets.KAGGLE_USERNAME }}\",\"key\":\"${{ secrets.KAGGLE_KEY }}\"}" > /root/.config/kaggle/kaggle.json
-        chmod 600 /root/.config/kaggle/kaggle.json
+        mkdir -p ~/.kaggle
+        echo "{\"username\":\"${{ secrets.KAGGLE_USERNAME }}\",\"key\":\"${{ secrets.KAGGLE_KEY }}\"}" > ~/.kaggle/kaggle.json
+        chmod 600 ~/.kaggle/kaggle.json
     - name: Run Data Ingestion
       run: |
         python -m src.ingest_data
