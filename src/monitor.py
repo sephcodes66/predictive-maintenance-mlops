@@ -33,8 +33,9 @@ def monitor_data_drift(new_data_path: str, reference_data_path: str, config_path
                 print("  No drift detected.")
 
 if __name__ == "__main__":
+    # Example usage (replace with actual paths as needed)
     monitor_data_drift(
-        "data/simulated/simulated_data.csv",
+        "path/to/your/new_data.csv",
         "data/processed/turbofan_features.parquet",
         "config/main_config.yaml"
     )

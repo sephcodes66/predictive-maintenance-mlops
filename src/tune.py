@@ -12,16 +12,17 @@ import pandas as pd
 
 from .visualize import plot_optuna_trials, plot_feature_importance, plot_actual_vs_predicted
 
+from src.build_features import build_features
+
 def tune_model(config: dict):
     """
     Performs hyperparameter tuning for an XGBoost regression model using Optuna.
 
     Args:
         config (dict): A dictionary containing the configuration parameters.
-    """
-
+    """    
     # --- 1. Load Data ---
-    features_df = pd.read_parquet("data/processed/turbofan_features.parquet")
+    features_df = build_features(db_path=config["data"]["database_path"])
     X = features_df.drop(columns=[config["data"]["target_column"]])
     y = features_df[config["data"]["target_column"]]
 
@@ -76,7 +77,11 @@ def tune_model(config: dict):
         plot_feature_importance(best_model, f"{output_dir}/feature_importance.png")
         
         y_pred = best_model.predict(X_test)
-        plot_actual_vs_predicted(y_test, y_pred, f"{output_dir}/actual_vs_predicted.png")
+        plot_actual_vs_predicted(
+            y_test,
+            y_pred,
+            f"{output_dir}/actual_vs_predicted.png"
+        )
 
         mlflow.log_artifacts(output_dir)
 
@@ -112,9 +117,15 @@ def tune_model(config: dict):
         print(f"Tuning complete. Best trial logged to experiment: {config['mlflow']['experiment_name']}")
         print(f"Run ID: {run.info.run_id}")
 
+        # --- 8. Save the run ID ---
+        with open("mlruns/0/latest_run_id.txt", "w") as f:
+            f.write(run.info.run_id)
+
 if __name__ == "__main__":
     import sys
     sys.path.append(os.getcwd())
     from src.visualize import plot_optuna_trials, plot_feature_importance
-    tune_model("config/main_config.yaml")
+    with open("config/main_config.yaml", "r") as f:
+        config = yaml.safe_load(f)
+    tune_model(config)
 

@@ -11,6 +11,7 @@ import os
 import yaml
 from sklearn.model_selection import train_test_split
 import argparse
+import joblib
 
 def plot_feature_distributions(X: pd.DataFrame, output_path: str):
     """
@@ -124,7 +125,8 @@ if __name__ == "__main__":
         max_results=1,
     )[0]
     model_uri = f"runs:/{best_run.info.run_id}/model"
-    model = mlflow.pyfunc.load_model(model_uri)
+    print(f"Loading model from: {model_uri}")
+    model = mlflow.pyfunc.load_model(model_uri=model_uri)
 
     # Generate and save plots
     plot_feature_distributions(X, os.path.join(output_dir, "feature_distributions.png"))
@@ -132,6 +134,10 @@ if __name__ == "__main__":
     
     y_pred = model.predict(X_test)
 
-    plot_actual_vs_predicted(y_test, y_pred, os.path.join(output_dir, "actual_vs_predicted.png"))
+    plot_actual_vs_predicted(
+        y_test,
+        y_pred,
+        os.path.join(output_dir, "actual_vs_predicted.png")
+    )
 
     print(f"Visualizations saved to: {output_dir}")

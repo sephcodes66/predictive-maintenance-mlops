@@ -3,7 +3,7 @@
 
 # --- Data Parameters ---
 data:
-  feature_path: "data/processed/turbofan_features.parquet"
+  feature_path: "data/processed/turbofan_features.csv"
   target_column: "RUL"
   test_size: 0.2
   random_state: 42
@@ -37,3 +37,8 @@ mlflow:
 # --- Visualization Parameters ---
 visualization:
   output_dir: "visualizations"
+
+# --- Monitoring Parameters ---
+monitoring:
+  drift_threshold: 0.25
+  r2_threshold: 0.7

@@ -15,6 +15,10 @@ model_name = "predictive_maintenance_model_tuned"
 model_version = "latest"
 model = mlflow.pyfunc.load_model(model_uri=f"models:/{model_name}/{model_version}")
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 @app.post("/predict")
 def predict(data: SensorData):
     """

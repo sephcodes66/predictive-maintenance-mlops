@@ -1,10 +1,9 @@
-
-
 import mlflow
 import pandas as pd
 import yaml
 import os
-import argparse
+import joblib
+from src.feature_engineering import apply_feature_engineering
 
 def predict(config_path: str, input_csv_path: str, output_csv_path: str):
     """
@@ -12,7 +11,7 @@ def predict(config_path: str, input_csv_path: str, output_csv_path: str):
 
     Args:
         config_path (str): Path to the main configuration file.
-        input_csv_path (str): Path to the CSV file with new customer data.
+        input_csv_path (str): Path to the CSV file with new data.
         output_csv_path (str): Path to save the predictions.
     """
     # --- 1. Load Config ---
@@ -29,11 +28,14 @@ def predict(config_path: str, input_csv_path: str, output_csv_path: str):
     # --- 3. Load and Prepare New Data ---
     new_data = pd.read_csv(input_csv_path)
     
-    # --- 4. Make Predictions ---
+    # --- 4. Apply Feature Engineering ---
+    new_data = apply_feature_engineering(new_data)
+
+    # --- 5. Make Predictions ---
     predictions = model.predict(new_data)
     
-    # --- 5. Save Predictions ---
-    prediction_df = pd.DataFrame(predictions, columns=['churn_prediction'])
+    # --- 6. Save Predictions ---
+    prediction_df = pd.DataFrame(predictions, columns=['RUL_prediction'])
     output_df = pd.concat([new_data, prediction_df], axis=1)
     
     os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
@@ -44,15 +46,12 @@ def predict(config_path: str, input_csv_path: str, output_csv_path: str):
     print(output_df.head())
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Batch prediction script for churn model.")
-    parser.add_argument("--config", type=str, default="config/main_config.yaml", help="Path to the main configuration file.")
-    parser.add_argument("--input_csv", type=str, required=True, help="Path to the input CSV file with customer data.")
-    parser.add_argument("--output_csv", type=str, required=True, help="Path to save the output CSV with predictions.")
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_path", default="config/main_config.yaml")
+    parser.add_argument("--input_csv", required=True)
+    parser.add_argument("--output_csv", required=True)
     args = parser.parse_args()
 
-    predict(
-        config_path=args.config,
-        input_csv_path=args.input_csv,
-        output_csv_path=args.output_csv
-    )
-
+    predict(args.config_path, args.input_csv, args.output_csv)

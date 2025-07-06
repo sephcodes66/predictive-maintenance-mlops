@@ -7,12 +7,13 @@ import sqlite3
 
 def test_build_features():
     """
-    Tests the build_features function to ensure it creates the feature file.
+    Tests the build_features function to ensure it creates the feature file and the transformer file.
     """
     # --- 1. Setup ---
     db_path = "turbofan_test.sqlite"
     output_dir = "data/processed"
-    output_path = os.path.join(output_dir, "turbofan_features.parquet")
+    feature_path = os.path.join(output_dir, "turbofan_features.parquet")
+    transformer_path = os.path.join(output_dir, "rul_transformer.joblib")
     
     # Create a dummy database
     conn = sqlite3.connect(db_path)
@@ -51,11 +52,13 @@ def test_build_features():
     build_features(db_path=db_path, output_dir=output_dir)
 
     # --- 3. Assertion ---
-    assert os.path.exists(output_path), f"Feature file not found at {output_path}"
+    assert os.path.exists(feature_path), f"Feature file not found at {feature_path}"
+    assert os.path.exists(transformer_path), f"Transformer file not found at {transformer_path}"
     
     # --- 4. Teardown ---
     os.remove(db_path)
-    os.remove(output_path)
+    os.remove(feature_path)
+    os.remove(transformer_path)
 
 def test_pipeline():
     """

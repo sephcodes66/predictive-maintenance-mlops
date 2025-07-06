@@ -1,65 +1,64 @@
-
-
 import pandas as pd
 import pandera as pa
 import sqlite3
 import sys
+import yaml
 
-# --- Define Data Quality Schemas ---
-
-# Schema for the 'orders' table
-orders_schema = pa.DataFrameSchema({
-    "order_id": pa.Column(str, required=True, unique=True, description="Unique identifier for the order."),
-    "customer_id": pa.Column(str, required=True, description="Identifier for the customer."),
-    "order_status": pa.Column(str, checks=pa.Check.isin(['delivered', 'shipped', 'canceled', 'invoiced', 'processing', 'unavailable', 'approved', 'created']), description="Status of the order."),
-    "order_purchase_timestamp": pa.Column(pa.DateTime, required=True, description="Timestamp of the order purchase."),
-    "order_approved_at": pa.Column(pa.DateTime, required=False, nullable=True, description="Timestamp when the order was approved."),
-    "order_delivered_carrier_date": pa.Column(pa.DateTime, required=False, nullable=True, description="Timestamp when the order was delivered to the carrier."),
-    "order_delivered_customer_date": pa.Column(pa.DateTime, required=False, nullable=True, description="Timestamp when the order was delivered to the customer."),
-    "order_estimated_delivery_date": pa.Column(pa.DateTime, required=True, description="Estimated delivery date of the order."),
+# Schema for the 'train_fd001' table
+train_fd001_schema = pa.DataFrameSchema({
+    "unit_number": pa.Column(int, required=True, description="Identifier for the engine unit."),
+    "time_in_cycles": pa.Column(int, required=True, description="Time in operational cycles."),
+    "op_setting_1": pa.Column(float, required=True, description="Operational setting 1."),
+    "op_setting_2": pa.Column(float, required=True, description="Operational setting 2."),
+    "op_setting_3": pa.Column(float, required=True, description="Operational setting 3."),
+    "sensor_1": pa.Column(float, required=True, description="Sensor measurement 1."),
+    "sensor_2": pa.Column(float, required=True, description="Sensor measurement 2."),
+    "sensor_3": pa.Column(float, required=True, description="Sensor measurement 3."),
+    "sensor_4": pa.Column(float, required=True, description="Sensor measurement 4."),
+    "sensor_5": pa.Column(float, required=True, description="Sensor measurement 5."),
+    "sensor_6": pa.Column(float, required=True, description="Sensor measurement 6."),
+    "sensor_7": pa.Column(float, required=True, description="Sensor measurement 7."),
+    "sensor_8": pa.Column(float, required=True, description="Sensor measurement 8."),
+    "sensor_9": pa.Column(float, required=True, description="Sensor measurement 9."),
+    "sensor_10": pa.Column(float, required=True, description="Sensor measurement 10."),
+    "sensor_11": pa.Column(float, required=True, description="Sensor measurement 11."),
+    "sensor_12": pa.Column(float, required=True, description="Sensor measurement 12."),
+    "sensor_13": pa.Column(float, required=True, description="Sensor measurement 13."),
+    "sensor_14": pa.Column(float, required=True, description="Sensor measurement 14."),
+    "sensor_15": pa.Column(int, required=True, description="Sensor measurement 15."),
+    "sensor_16": pa.Column(int, required=True, description="Sensor measurement 16."),
+    "sensor_17": pa.Column(int, required=True, description="Sensor measurement 17."),
+    "sensor_18": pa.Column(int, required=True, description="Sensor measurement 18."),
+    "sensor_19": pa.Column(float, required=True, description="Sensor measurement 19."),
+    "sensor_20": pa.Column(float, required=True, description="Sensor measurement 20."),
+    "sensor_21": pa.Column(float, required=True, description="Sensor measurement 21."),
 })
 
-# Schema for the 'order_payments' table
-order_payments_schema = pa.DataFrameSchema({
-    "order_id": pa.Column(str, required=True, description="Identifier for the order."),
-    "payment_sequential": pa.Column(int, required=True, description="Sequence number for the payment method."),
-    "payment_type": pa.Column(str, checks=pa.Check.isin(['credit_card', 'boleto', 'voucher', 'debit_card', 'not_defined']), description="Type of payment."),
-    "payment_installments": pa.Column(int, required=True, checks=pa.Check.ge(0), description="Number of payment installments."),
-    "payment_value": pa.Column(float, required=True, checks=pa.Check.ge(0), description="Value of the payment."),
-})
+def load_config(config_path="config/main_config.yaml"):
+    """Loads the main configuration file."""
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
 
-
-def run_data_quality_checks(db_path: str = "olist.sqlite"):
+def run_data_quality_checks():
     """
     Runs data quality checks on the raw data tables.
-
-    Args:
-        db_path (str): Path to the SQLite database.
     """
     print("--- Running Data Quality Checks ---")
+    
+    config = load_config()
+    db_path = config["data"]["database_path"]
     
     # --- 1. Connect to the database ---
     conn = sqlite3.connect(db_path)
 
     # --- 2. Load Data ---
-    orders_df = pd.read_sql("SELECT * FROM orders", conn, parse_dates=[
-        "order_purchase_timestamp",
-        "order_approved_at",
-        "order_delivered_carrier_date",
-        "order_delivered_customer_date",
-        "order_estimated_delivery_date"
-    ])
-    order_payments_df = pd.read_sql("SELECT * FROM order_payments", conn)
+    train_df = pd.read_sql("SELECT * FROM train_fd001", conn)
 
     # --- 3. Run Validations ---
     try:
-        print("\nValidating 'orders' table...")
-        orders_schema.validate(orders_df, lazy=True)
-        print("'orders' table is valid.")
-
-        print("\nValidating 'order_payments' table...")
-        order_payments_schema.validate(order_payments_df, lazy=True)
-        print("'order_payments' table is valid.")
+        print("\nValidating 'train_fd001' table...")
+        train_fd001_schema.validate(train_df, lazy=True)
+        print("'train_fd001' table is valid.")
 
     except pa.errors.SchemaErrors as err:
         print("\n--- Data Quality Checks Failed ---")
@@ -75,4 +74,3 @@ def run_data_quality_checks(db_path: str = "olist.sqlite"):
 
 if __name__ == "__main__":
     run_data_quality_checks()
-

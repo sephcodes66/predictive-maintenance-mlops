@@ -8,8 +8,12 @@ from mlflow.models import infer_signature
 import numpy as np
 import os
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler
+import joblib
 
 from .visualize import plot_feature_importance, plot_actual_vs_predicted
+
+from src.build_features import build_features
 
 def train_model(config: dict):
     """
@@ -20,7 +24,7 @@ def train_model(config: dict):
     """
 
     # --- 1. Load Data ---
-    features_df = pd.read_parquet("data/processed/turbofan_features.parquet")
+    features_df = build_features(db_path=config["data"]["database_path"])
     X = features_df.drop(columns=[config["data"]["target_column"]])
     y = features_df[config["data"]["target_column"]]
 
@@ -39,6 +43,12 @@ def train_model(config: dict):
 
         # --- 3. Evaluate Model ---
         y_pred = model.predict(X_test)
+
+        # Ensure specific columns are int64 for signature inference
+        for col_name in ['unit_number', 'time_in_cycles', 'sensor_15', 'sensor_16', 'sensor_17', 'sensor_18']:
+            if col_name in X_test.columns:
+                X_test[col_name] = X_test[col_name].astype(int)
+
         signature = infer_signature(X_test, y_pred)
 
         # --- 4. Log Metrics ---
@@ -50,7 +60,11 @@ def train_model(config: dict):
         output_dir = config["visualization"]["output_dir"]
         os.makedirs(output_dir, exist_ok=True)
         plot_feature_importance(model, f"{output_dir}/feature_importance.png")
-        plot_actual_vs_predicted(y_test, y_pred, f"{output_dir}/actual_vs_predicted.png")
+        plot_actual_vs_predicted(
+            y_test,
+            y_pred,
+            f"{output_dir}/actual_vs_predicted.png"
+        )
         mlflow.log_artifacts(output_dir)
 
         # --- 6. Log Model ---
@@ -64,3 +78,7 @@ def train_model(config: dict):
 
         print(f"Model logged to experiment: {config['mlflow']['experiment_name']}")
         print(f"Run ID: {run.info.run_id}")
+
+        # --- 7. Save the run ID ---
+        with open("mlruns/0/latest_run_id.txt", "w") as f:
+            f.write(run.info.run_id)

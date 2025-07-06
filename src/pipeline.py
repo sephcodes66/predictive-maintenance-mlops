@@ -14,7 +14,6 @@ class Pipeline:
         ingest_data(self.config['data']['database_path'])
         build_features(self.config['data']['database_path'])
         train_model(self.config)
-        tune_model(self.config)
 
 if __name__ == '__main__':
     pipeline = Pipeline('config/main_config.yaml')

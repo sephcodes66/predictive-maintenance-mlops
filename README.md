@@ -1,6 +1,6 @@
 # End-to-End MLOps: Predictive Maintenance
 
-This project demonstrates a complete, professional MLOps workflow for predicting equipment failure in an industrial setting. It is designed to be a template for building robust, reproducible, and automated machine learning pipelines for predictive maintenance.
+This project demonstrates a complete, MLOps workflow for predicting equipment failure in an industrial setting. It is designed to be a template for building robust, reproducible, and automated machine learning pipelines for predictive maintenance.
 
 ## Table of Contents
 
@@ -106,16 +106,16 @@ This project follows a structured MLOps lifecycle, separating concerns into dist
 
 You can run each stage of the pipeline independently:
 
-### 1. Data Quality Checks
-
-```bash
-python -m src.data_quality_checks
-```
-
-### 2. Data Ingestion
+### 1. Data Ingestion
 
 ```bash
 python -m src.ingest_data
+```
+
+### 2. Data Quality Checks
+
+```bash
+python -m src.data_quality_checks
 ```
 
 ### 3. Feature Engineering
@@ -159,11 +159,36 @@ Finally, validate the predictions:
 python -m src.validate_unseen
 ```
 
-### 8. Running Tests
+### 8. Monitoring
+
+This project includes a monitoring pipeline to detect data drift and model performance degradation.
+
+**a. Create Baseline:**
+```bash
+python -m src.create_baseline --config config/main_config.yaml
+```
+
+**b. Monitor Data Drift:**
+```bash
+python -m src.monitor_drift --config config/main_config.yaml --new_data data/simulated/simulated_diverse_dataset.csv
+```
+
+**c. Monitor Performance:**
+```bash
+python -m src.monitor_performance --config config/main_config.yaml --predictions data/predictions/unseen_predictions.csv --ground_truth data/simulated/simulated_diverse_ground_truth.csv
+```
+
+### 9. Running Tests
 
 ```bash
 pytest
 ```
+
+## Handling Skewed Target Variable
+
+In many predictive maintenance datasets, the distribution of the target variable (RUL) can be highly skewed. This is because there is often a large amount of data from healthy machines and very little data from machines that are close to failure.
+
+To address this, we apply a **Yeo-Johnson transformation** to the target variable. This is a power transformation that makes the data more Gaussian-like (normal), which can help improve the performance of the model. The fitted `PowerTransformer` object is saved and used to inverse-transform the predictions back to the original RUL scale.
 
 ## CI/CD Pipeline
 
@@ -171,13 +196,7 @@ This project uses GitHub Actions to automate the testing and execution of the ML
 
 1.  **`test`:** This job runs on every push and pull request to the `main` branch. It installs all dependencies and runs the full `pytest` suite to ensure that no new code breaks existing functionality.
 2.  **`run_pipeline`:** This job runs only if the `test` job succeeds. It builds the Docker image and runs the container to execute the full end-to-end MLOps pipeline.
-
-You can add a status badge to the top of this `README.md` to show the current status of the pipeline:
-
-```markdown
-[![MLOps Pipeline](https://github.com/<YOUR_USERNAME>/<YOUR_REPOSITORY>/actions/workflows/main.yml/badge.svg)](https://github.com/<YOUR_USERNAME>/<YOUR_REPOSITORY>/actions/workflows/main.yml)
-```
-
+ 
 ## Docker
 
 

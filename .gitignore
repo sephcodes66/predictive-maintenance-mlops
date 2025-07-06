@@ -136,8 +136,15 @@ mlflow-artifacts/
 
 # Data
 data/processed/
+data/raw/CMaps/
+data/raw/nasa-cmaps/
 data/simulated/
 data/predictions/
+data/monitoring/
+monitoring_results/
+validation_results/
+visualizations/
+test_visualizations/
 *.csv
 *.json
 *.html
@@ -176,9 +183,6 @@ dvc.lock
 .dvc/
 .dvcignore
 artifacts/
-visualizations/
-test_visualizations/
-validation_results/
 
 # Ignore .gitkeep files
 .gitkeep

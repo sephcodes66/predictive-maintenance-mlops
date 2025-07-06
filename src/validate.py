@@ -1,21 +1,13 @@
-
-
 import mlflow
 import pandas as pd
 import yaml
 import os
 import argparse
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    roc_auc_score,
-    confusion_matrix,
-    ConfusionMatrixDisplay
-)
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import matplotlib.pyplot as plt
+
+from src.build_features import build_features
 
 def validate_model(config_path: str, output_dir: str):
     """
@@ -30,7 +22,7 @@ def validate_model(config_path: str, output_dir: str):
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
-    data = pd.read_parquet("data/processed/customer_features_realistic.parquet")
+    data = build_features(db_path=config["data"]["database_path"])
     X = data.drop(columns=[config["data"]["target_column"]])
     y = data[config["data"]["target_column"]]
 
@@ -48,38 +40,32 @@ def validate_model(config_path: str, output_dir: str):
 
     # --- 3. Make Predictions on the Test Set ---
     y_pred = model.predict(X_test)
-    y_pred_proba = model.predict(X_test) # Using predict instead of predict_proba for simplicity
 
     # --- 4. Validate Predictions and Print Metrics ---
     print("\n--- Model Validation Results ---")
     
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
-    auc = roc_auc_score(y_test, y_pred_proba)
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
 
-    print(f"Accuracy: {accuracy:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall: {recall:.4f}")
-    print(f"F1-Score: {f1:.4f}")
-    print(f"AUC: {auc:.4f}")
+    print(f"Mean Absolute Error: {mae:.4f}")
+    print(f"Mean Squared Error: {mse:.4f}")
+    print(f"R-squared: {r2:.4f}")
 
-    # --- 5. Generate and Save Confusion Matrix ---
-    print("\nGenerating confusion matrix...")
-    cm = confusion_matrix(y_test, y_pred)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-    
+    # --- 5. Generate and Save Scatter Plot ---
+    print("\nGenerating scatter plot...")
     os.makedirs(output_dir, exist_ok=True)
-    cm_path = os.path.join(output_dir, "validation_confusion_matrix.png")
+    scatter_path = os.path.join(output_dir, "validation_scatter_plot.png")
     
-    fig, ax = plt.subplots(figsize=(8, 6))
-    disp.plot(ax=ax, cmap='Blues')
-    ax.set_title('Validation Confusion Matrix')
-    plt.savefig(cm_path)
-    plt.close(fig)
+    plt.figure(figsize=(8, 6))
+    plt.scatter(y_test, y_pred, alpha=0.5)
+    plt.xlabel("Actual RUL")
+    plt.ylabel("Predicted RUL")
+    plt.title("Actual vs. Predicted RUL")
+    plt.savefig(scatter_path)
+    plt.close()
     
-    print(f"Confusion matrix saved to: {cm_path}")
+    print(f"Scatter plot saved to: {scatter_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Validation script for churn model.")
@@ -91,4 +77,3 @@ if __name__ == "__main__":
         config_path=args.config,
         output_dir=args.output_dir
     )
-
