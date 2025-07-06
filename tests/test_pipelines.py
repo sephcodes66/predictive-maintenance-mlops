@@ -62,8 +62,43 @@ def test_pipeline():
     """
     Tests the full pipeline with the test configuration.
     """
+    db_path = "turbofan_test.sqlite"
+    conn = sqlite3.connect(db_path)
+    df = pd.DataFrame({
+        'unit_number': [1, 1, 1, 2, 2],
+        'time_in_cycles': [1, 2, 3, 1, 2],
+        'op_setting_1': [1, 1, 1, 1, 1],
+        'op_setting_2': [1, 1, 1, 1, 1],
+        'op_setting_3': [1, 1, 1, 1, 1],
+        'sensor_1': [1, 1, 1, 1, 1],
+        'sensor_2': [1, 1, 1, 1, 1],
+        'sensor_3': [1, 1, 1, 1, 1],
+        'sensor_4': [1, 1, 1, 1, 1],
+        'sensor_5': [1, 1, 1, 1, 1],
+        'sensor_6': [1, 1, 1, 1, 1],
+        'sensor_7': [1, 1, 1, 1, 1],
+        'sensor_8': [1, 1, 1, 1, 1],
+        'sensor_9': [1, 1, 1, 1, 1],
+        'sensor_10': [1, 1, 1, 1, 1],
+        'sensor_11': [1, 1, 1, 1, 1],
+        'sensor_12': [1, 1, 1, 1, 1],
+        'sensor_13': [1, 1, 1, 1, 1],
+        'sensor_14': [1, 1, 1, 1, 1],
+        'sensor_15': [1, 1, 1, 1, 1],
+        'sensor_16': [1, 1, 1, 1, 1],
+        'sensor_17': [1, 1, 1, 1, 1],
+        'sensor_18': [1, 1, 1, 1, 1],
+        'sensor_19': [1, 1, 1, 1, 1],
+        'sensor_20': [1, 1, 1, 1, 1],
+        'sensor_21': [1, 1, 1, 1, 1],
+    })
+    df.to_sql("train_fd001", conn, if_exists="replace", index=False)
+    conn.close()
+
     try:
         pipeline = Pipeline("config/test_config.yaml")
         pipeline.run()
     except Exception as e:
         assert False, f"Pipeline failed with exception: {e}"
+    finally:
+        os.remove(db_path)
