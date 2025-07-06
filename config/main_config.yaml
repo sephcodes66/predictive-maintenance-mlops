@@ -1,0 +1,38 @@
+
+# Configuration for the MLOps XGBoost Project
+
+# --- Data Parameters ---
+data:
+  feature_path: "data/processed/customer_features.parquet"
+  target_column: "churn"
+  test_size: 0.2
+  random_state: 42
+
+# --- Model Parameters ---
+model:
+  name: "olist_churn_model"
+  params:
+    objective: "binary:logistic"
+    eval_metric: "auc"
+    n_estimators: 100
+    learning_rate: 0.1
+    max_depth: 6
+    subsample: 0.8
+    colsample_bytree: 0.8
+
+# --- Hyperparameter Tuning Parameters ---
+tuning:
+  n_trials: 50
+  objective_metric: "auc"
+  direction: "maximize"
+  sampler: "tpe"
+  pruner: "median"
+
+# --- MLflow Parameters ---
+mlflow:
+  experiment_name: "Olist Churn Prediction"
+  registry_uri: "databricks-uc"
+
+# --- Visualization Parameters ---
+visualization:
+  output_dir: "visualizations"

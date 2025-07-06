@@ -1,0 +1,27 @@
+
+# Docker ignore
+.dockerignore
+Dockerfile
+.git
+.gitignore
+.venv
+venv/
+.env
+mlruns/
+data/
+*.sqlite
+*.db
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.idea/
+.vscode/
+*.ipynb
+notebooks/
+test_visualizations/
+visualizations/
+README.md
+GEMINI.md
