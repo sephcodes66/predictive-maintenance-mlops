@@ -239,4 +239,4 @@ You can serve the model as a REST API using MLflow's built-in server.
 
 ## Configuration
 
-All parameters for the project are defined in `config/main_config.yaml`. You can modify this file to change the behavior of the training and tuning processes without changing the source code.
+All parameters for the project are defined in `config/main_config.yaml`. You can modify this file to change the behavior of the training and tuning processes without changing the source code.# predictive-maintenance-mlops
