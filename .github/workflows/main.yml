@@ -22,10 +22,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Set up Kaggle API credentials
-      run: |
-        mkdir -p ~/.kaggle
-        echo "${{ secrets.KAGGLE_CREDENTIALS }}" > ~/.kaggle/kaggle.json
-        chmod 600 ~/.kaggle/kaggle.json
+      uses: robert-david-graham/kaggle-api-credential-action@v1
+      with:
+        kaggle-username: ${{ secrets.KAGGLE_USERNAME }}
+        kaggle-key: ${{ secrets.KAGGLE_KEY }}
     - name: Run Data Ingestion
       run: |
         python -m src.ingest_data
