@@ -45,4 +45,7 @@ jobs:
     - name: Build and run Docker container
       run: |
         docker build -t olist-churn-predictor .
-        docker run olist-churn-predictor
+        docker run \
+          -e KAGGLE_USERNAME=${{ secrets.KAGGLE_USERNAME }} \
+          -e KAGGLE_KEY=${{ secrets.KAGGLE_KEY }} \
+          olist-churn-predictor
