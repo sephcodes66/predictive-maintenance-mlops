@@ -1,18 +1,19 @@
 
-# Configuration for the MLOps XGBoost Project - TEST
+# Configuration for the MLOps Predictive Maintenance Project - TEST
 
 # --- Data Parameters ---
 data:
-  target_column: "churn"
+  target_column: "RUL"
   n_samples: 100
   n_features: 5
   noise_level: 0.1
   test_size: 0.5
   random_state: 42
+  database_path: "turbofan_test.sqlite"
 
 # --- Model Parameters ---
 model:
-  name: "test_xgboost_regression_model"
+  name: "test_predictive_maintenance_model"
   params:
     tree_method: "hist"
     n_estimators: 10
@@ -32,7 +33,7 @@ tuning:
 
 # --- MLflow Parameters ---
 mlflow:
-  experiment_name: "Test_XGBoost_Regression"
+  experiment_name: "Test_Predictive_Maintenance"
 
 # --- Visualization Parameters ---
 visualization:

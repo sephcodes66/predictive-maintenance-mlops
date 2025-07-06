@@ -1,20 +1,34 @@
 
 import pandas as pd
-from src.data_processing import create_regression_data
+import duckdb
 
-def test_create_regression_data():
+def test_sensor_data_outliers():
     """
-    Tests the create_regression_data function to ensure it returns the correct data shapes and types.
+    Tests the sensor data for outliers using a SQL query with duckdb.
     """
     # --- 1. Setup ---
-    n_samples = 100
-    n_features = 5
+    data = {
+        'sensor_1': [10, 12, 11, 13, 10, 1000],
+        'sensor_2': [20, 22, 21, 23, 20, 2000]
+    }
+    df = pd.DataFrame(data)
 
     # --- 2. Execution ---
-    X, y = create_regression_data(n_samples=n_samples, n_features=n_features)
+    # Use duckdb to run a SQL query to find outliers
+    # An outlier is defined as a value that is 50x greater than the median.
+    result = duckdb.query("""
+    WITH stats AS (
+        SELECT
+            MEDIAN(sensor_1) * 50 as threshold_1,
+            MEDIAN(sensor_2) * 50 as threshold_2
+        FROM df
+    )
+    SELECT
+        SUM(CASE WHEN sensor_1 > stats.threshold_1 THEN 1 ELSE 0 END) as outlier_count_1,
+        SUM(CASE WHEN sensor_2 > stats.threshold_2 THEN 1 ELSE 0 END) as outlier_count_2
+    FROM df, stats
+    """).df()
 
     # --- 3. Assertion ---
-    assert isinstance(X, pd.DataFrame), "X should be a pandas DataFrame"
-    assert isinstance(y, pd.Series), "y should be a pandas Series"
-    assert X.shape[0] == n_samples, f"X should have {n_samples} rows"
-    assert y.shape == (n_samples,), f"y should have {n_samples} rows"
+    assert result['outlier_count_1'][0] == 1, "Expected 1 outlier in sensor_1"
+    assert result['outlier_count_2'][0] == 1, "Expected 1 outlier in sensor_2"

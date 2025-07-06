@@ -1,19 +1,20 @@
 
-# Configuration for the MLOps XGBoost Project
+# Configuration for the MLOps Predictive Maintenance Project
 
 # --- Data Parameters ---
 data:
-  feature_path: "data/processed/customer_features.parquet"
-  target_column: "churn"
+  feature_path: "data/processed/turbofan_features.parquet"
+  target_column: "RUL"
   test_size: 0.2
   random_state: 42
+  database_path: "turbofan.sqlite"
 
 # --- Model Parameters ---
 model:
-  name: "olist_churn_model"
+  name: "predictive_maintenance_model"
   params:
-    objective: "binary:logistic"
-    eval_metric: "auc"
+    objective: "reg:squarederror"
+    eval_metric: "rmse"
     n_estimators: 100
     learning_rate: 0.1
     max_depth: 6
@@ -23,14 +24,14 @@ model:
 # --- Hyperparameter Tuning Parameters ---
 tuning:
   n_trials: 50
-  objective_metric: "auc"
-  direction: "maximize"
+  objective_metric: "rmse"
+  direction: "minimize"
   sampler: "tpe"
   pruner: "median"
 
 # --- MLflow Parameters ---
 mlflow:
-  experiment_name: "Olist Churn Prediction"
+  experiment_name: "Predictive Maintenance"
   registry_uri: "databricks-uc"
 
 # --- Visualization Parameters ---

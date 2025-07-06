@@ -1,6 +1,6 @@
-# End-to-End MLOps: Olist Churn Prediction
+# End-to-End MLOps: Predictive Maintenance
 
-This project demonstrates a complete, professional MLOps workflow for predicting customer churn on the Olist e-commerce dataset. It is designed to be a template for building robust, reproducible, and automated machine learning pipelines.
+This project demonstrates a complete, professional MLOps workflow for predicting equipment failure in an industrial setting. It is designed to be a template for building robust, reproducible, and automated machine learning pipelines for predictive maintenance.
 
 ## Table of Contents
 
@@ -21,21 +21,23 @@ This project demonstrates a complete, professional MLOps workflow for predicting
 
 ## The Business Problem
 
-The goal of this project is to predict customer churn for the Olist e-commerce platform. By identifying customers who are likely to stop making purchases, the business can proactively engage them with targeted marketing campaigns to improve customer retention.
+The goal of this project is to predict the Remaining Useful Life (RUL) of turbofan engines based on sensor data. By predicting when an engine is likely to fail, maintenance can be scheduled proactively, reducing downtime and preventing catastrophic failures.
 
-We define **churn** as a customer who has not made a purchase in the last 180 days.
+We define the problem as a regression task to predict the RUL, which is the number of operational cycles remaining before an engine is expected to fail.
 
 ## MLOps Lifecycle
 
 This project follows a structured MLOps lifecycle, separating concerns into distinct, automated stages:
 
-1.  **Data Ingestion:** Downloads the raw data from Kaggle and loads it into a local SQLite database.
-2.  **Feature Engineering:** Transforms the raw data into a feature table suitable for modeling, using SQL to calculate features like Recency, Frequency, and Monetary (RFM) values.
-3.  **Model Training:** Trains a baseline XGBoost classification model on the feature table.
+1.  **Data Ingestion:** Downloads the raw sensor data (e.g., from a public dataset like the NASA Turbofan Engine Degradation dataset) and loads it into a local SQLite database.
+2.  **Feature Engineering:** Transforms the raw time-series sensor data into a feature table suitable for modeling. This includes creating rolling averages, standard deviations, and other relevant features.
+3.  **Model Training:** Trains a baseline regression model (e.g., XGBoost) on the feature table to predict RUL.
 4.  **Hyperparameter Tuning:** Uses Optuna to systematically search for the best model hyperparameters.
-5.  **Experiment Tracking:** Uses MLflow to log all experiments, including parameters, metrics, and artifacts, to a Databricks workspace.
+5.  **Experiment Tracking:** Uses MLflow to log all experiments, including parameters, metrics, and artifacts.
 6.  **Testing:** Includes a full suite of unit and integration tests using `pytest` to ensure code quality and reliability.
 7.  **Containerization:** Encapsulates the entire workflow in a Docker container for portability and reproducibility.
+8.  **Deployment:** Provides a simple FastAPI script to serve the model as a REST API.
+9.  **Monitoring:** Includes a script to simulate monitoring for data drift.
 
 ## Project Structure
 
@@ -86,26 +88,16 @@ This project follows a structured MLOps lifecycle, separating concerns into dist
 
 - Python 3.11+
 - Docker
-- A Kaggle account and API token (`kaggle.json`)
-- A Databricks workspace and personal access token
 
 ### Setup
 
-1.  **Kaggle API Token:**
-    - Go to your Kaggle account settings page (`https://www.kaggle.com/me/account`).
-    - Click on "Create New API Token". This will download a `kaggle.json` file.
-    - Place this file in the `~/.kaggle/` directory.
-
-2.  **Databricks CLI:**
-    - Run `databricks configure` and provide your Databricks host and personal access token.
-
-3.  **Create and activate the virtual environment:**
+1.  **Create and activate the virtual environment:**
     ```bash
     python3 -m venv venv
     source venv/bin/activate
     ```
 
-4.  **Install the required dependencies:**
+2.  **Install the required dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
@@ -193,12 +185,12 @@ To build the Docker image and run the full pipeline in a containerized environme
 
 1.  **Build the image:**
     ```bash
-    docker build -t olist-churn-predictor .
+    docker build -t predictive-maintenance-app .
     ```
 
 2.  **Run the container:**
     ```bash
-    docker run olist-churn-predictor
+    docker run predictive-maintenance-app
     ```
 
 ## Inference
@@ -207,9 +199,9 @@ There are two ways to get predictions from the trained model:
 
 ### 1. Batch Inference
 
-To make predictions on a batch of new customers, you can use the `src/predict.py` script.
+To make predictions on a batch of new data, you can use the `src/predict.py` script.
 
-1.  Create a CSV file with the customer data you want to get predictions for. The file should have the same columns as the training data.
+1.  Create a CSV file with the sensor data you want to get predictions for. The file should have the same columns as the training data.
 2.  Run the prediction script from your terminal:
 
     ```bash
@@ -223,7 +215,7 @@ You can serve the model as a REST API using MLflow's built-in server.
 1.  **Start the model server:**
 
     ```bash
-    mlflow models serve -m "models:/olist_churn_model_tuned/latest" --port 5001
+    mlflow models serve -m "models:/predictive_maintenance_model_tuned/latest" --port 5001
     ```
 
 2.  **Send a prediction request:**
@@ -234,15 +226,12 @@ You can serve the model as a REST API using MLflow's built-in server.
     curl -X POST -H "Content-Type:application/json" --data '{
       "dataframe_split": {
         "columns": [
-          "frequency", "monetary", "avg_review_score", "total_items_purchased", 
-          "avg_order_value", "num_unique_sellers", "days_between_orders", 
-          "ltv", "avg_products_per_order", "avg_price_per_product", 
-          "time_since_last_purchase", "recency_0_30_days", "recency_31_90_days", 
-          "recency_91_180_days", "recency_181_plus_days"
+          "sensor_1", "sensor_2", "sensor_3", "sensor_4", "sensor_5", 
+          "sensor_6", "sensor_7", "sensor_8", "sensor_9", "sensor_10"
         ],
         "data": [
-          [5, 500.50, 4.5, 10, 100.10, 2, 30.5, 100.10, 2.0, 50.05, 200, 0, 0, 0, 1],
-          [1, 25.00, 3.0, 1, 25.00, 1, 0, 25.00, 1.0, 25.00, 10, 1, 0, 0, 0]
+          [23.4, 45.6, 12.3, 56.7, 89.0, 34.5, 67.8, 90.1, 23.4, 56.7],
+          [12.3, 34.5, 67.8, 90.1, 23.4, 56.7, 89.0, 12.3, 45.6, 78.9]
         ]
       }
     }' http://127.0.0.1:5001/invocations

@@ -5,18 +5,12 @@ import xgboost as xgb
 import pandas as pd
 import numpy as np
 import optuna
-from sklearn.metrics import confusion_matrix, roc_curve, ConfusionMatrixDisplay
 import mlflow
 from mlflow.tracking import MlflowClient
 import os
 import yaml
 from sklearn.model_selection import train_test_split
-import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import argparse
-from src.build_features import build_features
 
 def plot_feature_distributions(X: pd.DataFrame, output_path: str):
     """
@@ -87,33 +81,16 @@ def plot_feature_importance(model: xgb.XGBRegressor, output_path: str):
     plt.savefig(output_path)
     plt.close(fig)
 
-def plot_confusion_matrix(y_true: pd.Series, y_pred: np.ndarray, output_path: str):
+def plot_actual_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, output_path: str):
     """
-    Creates and saves a confusion matrix plot.
+    Creates and saves a scatter plot of actual vs. predicted values.
     """
-    cm = confusion_matrix(y_true, y_pred)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-    
     fig, ax = plt.subplots(figsize=(8, 6))
-    disp.plot(ax=ax, cmap='Blues')
-    ax.set_title('Confusion Matrix')
-    plt.savefig(output_path)
-    plt.close(fig)
-
-def plot_roc_curve(y_true: pd.Series, y_pred_proba: np.ndarray, output_path: str):
-    """
-    Creates and saves an ROC curve plot.
-    """
-    fpr, tpr, _ = roc_curve(y_true, y_pred_proba)
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve')
-    ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_title('Receiver Operating Characteristic (ROC) Curve')
-    ax.legend(loc="lower right")
+    ax.scatter(y_true, y_pred, alpha=0.5)
+    ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', lw=2)
+    ax.set_xlabel('Actual RUL')
+    ax.set_ylabel('Predicted RUL')
+    ax.set_title('Actual vs. Predicted RUL')
     plt.savefig(output_path)
     plt.close(fig)
 
@@ -130,11 +107,8 @@ if __name__ == "__main__":
     output_dir = args.output_dir
     os.makedirs(output_dir, exist_ok=True)
 
-    # Build features
-    build_features()
-
     # Load data
-    data = pd.read_parquet("data/processed/customer_features_realistic.parquet")
+    data = pd.read_parquet("data/processed/turbofan_features.parquet")
     X = data.drop(columns=[config["data"]["target_column"]])
     y = data[config["data"]["target_column"]]
     X_train, X_test, y_train, y_test = train_test_split(
@@ -146,7 +120,7 @@ if __name__ == "__main__":
     experiment = client.get_experiment_by_name(config["mlflow"]["experiment_name"])
     best_run = client.search_runs(
         experiment_ids=[experiment.experiment_id],
-        order_by=["metrics.best_auc DESC"],
+        order_by=["metrics.best_rmse ASC"],
         max_results=1,
     )[0]
     model_uri = f"runs:/{best_run.info.run_id}/model"
@@ -156,15 +130,8 @@ if __name__ == "__main__":
     plot_feature_distributions(X, os.path.join(output_dir, "feature_distributions.png"))
     plot_correlation_heatmap(X, y, os.path.join(output_dir, "correlation_heatmap.png"))
     
-    # Optuna study is not saved, so we can't plot it.
-    # plot_optuna_trials(study, os.path.join(output_dir, "optuna_trials.png"))
-    
-    # plot_feature_importance(model, os.path.join(output_dir, "feature_importance.png"))
+    y_pred = model.predict(X_test)
 
-    y_pred_proba = model.predict(X_test)
-    y_pred = (y_pred_proba > 0.5).astype(int)
-
-    plot_confusion_matrix(y_test, y_pred, os.path.join(output_dir, "confusion_matrix.png"))
-    plot_roc_curve(y_test, y_pred_proba, os.path.join(output_dir, "roc_curve.png"))
+    plot_actual_vs_predicted(y_test, y_pred, os.path.join(output_dir, "actual_vs_predicted.png"))
 
     print(f"Visualizations saved to: {output_dir}")
