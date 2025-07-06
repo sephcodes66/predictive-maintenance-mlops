@@ -42,10 +42,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Build and run Docker container
+    - name: Set up Python 3.11
+      uses: actions:setup-python@v3
+      with:
+        python-version: "3.11"
+    - name: Install dependencies
       run: |
-        docker build -t olist-churn-predictor .
-        docker run \
-          -e KAGGLE_USERNAME=${{ secrets.KAGGLE_USERNAME }} \
-          -e KAGGLE_KEY=${{ secrets.KAGGLE_KEY }} \
-          olist-churn-predictor
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Set up Kaggle API credentials
+      run: |
+        mkdir -p ~/.kaggle
+        echo "{\"username\":\"${{ secrets.KAGGLE_USERNAME }}\",\"key\":\"${{ secrets.KAGGLE_KEY }}\"}" > ~/.kaggle/kaggle.json
+        chmod 600 ~/.kaggle/kaggle.json
+    - name: Run Pipeline
+      run: |
+        python -m src.pipeline
