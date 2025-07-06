@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Exit on error
