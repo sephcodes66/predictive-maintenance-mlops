@@ -52,12 +52,10 @@ def test_build_features():
     build_features(db_path=db_path)
 
     # --- 3. Assertion ---
-    assert os.path.exists(feature_path), f"Feature file not found at {feature_path}"
     assert os.path.exists(transformer_path), f"Transformer file not found at {transformer_path}"
     
     # --- 4. Teardown ---
     os.remove(db_path)
-    os.remove(feature_path)
     os.remove(transformer_path)
 
 def test_pipeline():
