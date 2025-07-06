@@ -11,7 +11,7 @@ class Pipeline:
             self.config = yaml.safe_load(f)
 
     def run(self):
-        ingest_data(self.config['data']['database_path'])
+        ingest_data()
         build_features(self.config['data']['database_path'])
         train_model(self.config)
 

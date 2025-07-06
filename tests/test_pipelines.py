@@ -49,7 +49,7 @@ def test_build_features():
     conn.close()
 
     # --- 2. Execution ---
-    build_features(db_path=db_path, output_dir=output_dir)
+    build_features(db_path=db_path)
 
     # --- 3. Assertion ---
     assert os.path.exists(feature_path), f"Feature file not found at {feature_path}"
