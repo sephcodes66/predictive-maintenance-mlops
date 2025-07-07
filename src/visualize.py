@@ -71,18 +71,21 @@ def plot_optuna_trials(study: optuna.study.Study, output_path: str):
     plt.savefig(output_path)
     plt.close(fig)
 
-def plot_feature_importance(model: xgb.XGBRegressor, output_path: str):
+def plot_feature_importance(model: xgb.XGBRegressor, output_path: str, dataset_name: str = ""):
     """
     Creates and saves a plot showing the feature importance of the best model.
     """
     fig, ax = plt.subplots(figsize=(10, 8))
     xgb.plot_importance(model, ax=ax, importance_type='gain')
-    plt.title('Feature Importance')
+    title = 'Feature Importance'
+    if dataset_name:
+        title += f' ({dataset_name})'
+    plt.title(title)
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close(fig)
 
-def plot_actual_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, output_path: str):
+def plot_actual_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, output_path: str, dataset_name: str = ""):
     """
     Creates and saves a scatter plot of actual vs. predicted values.
     """
@@ -91,7 +94,10 @@ def plot_actual_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, output_path:
     ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', lw=2)
     ax.set_xlabel('Actual RUL')
     ax.set_ylabel('Predicted RUL')
-    ax.set_title('Actual vs. Predicted RUL')
+    title = 'Actual vs. Predicted RUL'
+    if dataset_name:
+        title += f' ({dataset_name})'
+    plt.title(title)
     plt.savefig(output_path)
     plt.close(fig)
 

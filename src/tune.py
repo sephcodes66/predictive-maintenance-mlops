@@ -22,15 +22,21 @@ def tune_model(config: dict):
         config (dict): A dictionary containing the configuration parameters.
     """    
     # --- 1. Load Data ---
-    features_df = build_features(db_path=config["data"]["database_path"])
-    X = features_df.drop(columns=[config["data"]["target_column"]])
-    y = features_df[config["data"]["target_column"]]
+    processed_data_dir = config["data"]["processed_data_dir"]
+    train_df = pd.read_csv(os.path.join(processed_data_dir, "train.csv"))
+    val_df = pd.read_csv(os.path.join(processed_data_dir, "val.csv"))
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=config["data"]["test_size"], random_state=config["data"]["random_state"]
-    )
+    # --- 2. Apply Feature Engineering ---
+    train_df_processed = build_features(train_df.copy(), is_training_data=True)
+    val_df_processed = build_features(val_df.copy(), is_training_data=False)
 
-    # --- 2. Define Objective Function ---
+    X_train = train_df_processed.drop(columns=[config["data"]["target_column"]])
+    y_train = train_df_processed[config["data"]["target_column"]]
+
+    X_val = val_df_processed.drop(columns=[config["data"]["target_column"]])
+    y_val = val_df_processed[config["data"]["target_column"]]
+
+    # --- 3. Define Objective Function ---
     def objective(trial):
         param = {
             "objective": "reg:squarederror",
@@ -45,47 +51,49 @@ def tune_model(config: dict):
         with mlflow.start_run(nested=True):
             mlflow.log_params(param)
             regressor = xgb.XGBRegressor(**param)
-            regressor.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False)
+            regressor.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
 
-            preds = regressor.predict(X_test)
-            rmse = np.sqrt(mean_squared_error(y_test, preds))
+            preds = regressor.predict(X_val)
+            rmse = np.sqrt(mean_squared_error(y_val, preds))
             mlflow.log_metric("rmse", rmse)
         
         trial.set_user_attr("model", regressor)
         return rmse
 
-    # --- 3. Run Tuning ---
+    # --- 4. Run Tuning ---
     mlflow.set_experiment(config["mlflow"]["experiment_name"])
 
     with mlflow.start_run(run_name="Tuning Run") as run:
         study = optuna.create_study(direction=config["tuning"]["direction"])
         study.optimize(objective, n_trials=config["tuning"]["n_trials"])
 
-        # --- 4. Log Best Trial ---
+        # --- 5. Log Best Trial ---
         best_trial = study.best_trial
         best_model = best_trial.user_attrs["model"]
 
         mlflow.log_metric("best_rmse", best_trial.value)
         mlflow.log_params(best_trial.params)
 
-        signature = infer_signature(X_train, best_model.predict(X_test))
+        signature = infer_signature(X_train, best_model.predict(X_val))
 
-        # --- 5. Log Artifacts ---
-        output_dir = config["visualization"]["output_dir"]
+        # --- 6. Log Artifacts ---
+        output_dir = os.path.abspath(config["visualization"]["output_dir"])
+        print(f"[tune.py] Plot output directory: {output_dir}")
         os.makedirs(output_dir, exist_ok=True)
-        plot_optuna_trials(study, f"{output_dir}/optuna_trials.png")
-        plot_feature_importance(best_model, f"{output_dir}/feature_importance.png")
+        plot_optuna_trials(study, os.path.join(output_dir, "optuna_trials.png"))
+        plot_feature_importance(best_model, os.path.join(output_dir, "feature_importance_tuned.png"), dataset_name="Validation Set")
         
-        y_pred = best_model.predict(X_test)
+        y_pred = best_model.predict(X_val)
         plot_actual_vs_predicted(
-            y_test,
+            y_val,
             y_pred,
-            f"{output_dir}/actual_vs_predicted.png"
+            os.path.join(output_dir, "actual_vs_predicted_tuned.png"),
+            dataset_name="Validation Set"
         )
 
         mlflow.log_artifacts(output_dir)
 
-        # --- 6. Log Model ---
+        # --- 7. Log Model ---
         mlflow.xgboost.log_model(
             xgb_model=best_model,
             artifact_path="model",
@@ -94,11 +102,11 @@ def tune_model(config: dict):
             registered_model_name=f"{config['model']['name']}_tuned",
         )
 
-        # --- 7. Log Metrics ---
-        y_pred = best_model.predict(X_test)
-        mae = mean_absolute_error(y_test, y_pred)
-        mse = mean_squared_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
+        # --- 8. Log Metrics ---
+        y_pred = best_model.predict(X_val)
+        mae = mean_absolute_error(y_val, y_pred)
+        mse = mean_squared_error(y_val, y_pred)
+        r2 = r2_score(y_val, y_pred)
         
         print(f"MAE: {mae}")
         print(f"MSE: {mse}")
@@ -117,15 +125,7 @@ def tune_model(config: dict):
         print(f"Tuning complete. Best trial logged to experiment: {config['mlflow']['experiment_name']}")
         print(f"Run ID: {run.info.run_id}")
 
-        # --- 8. Save the run ID ---
+        # --- 9. Save the run ID ---
         with open("mlruns/0/latest_run_id.txt", "w") as f:
             f.write(run.info.run_id)
-
-if __name__ == "__main__":
-    import sys
-    sys.path.append(os.getcwd())
-    from src.visualize import plot_optuna_trials, plot_feature_importance
-    with open("config/main_config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-    tune_model(config)
 

@@ -3,7 +3,7 @@ import pandas as pd
 import yaml
 import os
 import joblib
-from src.feature_engineering import apply_feature_engineering
+from src.build_features import build_features
 
 def predict(config_path: str, input_csv_path: str, output_csv_path: str):
     """
@@ -29,14 +29,24 @@ def predict(config_path: str, input_csv_path: str, output_csv_path: str):
     new_data = pd.read_csv(input_csv_path)
     
     # --- 4. Apply Feature Engineering ---
-    new_data = apply_feature_engineering(new_data)
+    # The build_features function will apply feature engineering and RUL transformation
+    # We pass is_training_data=False to ensure it loads the pre-fitted transformer
+    new_data_processed = build_features(new_data.copy(), is_training_data=False)
 
     # --- 5. Make Predictions ---
-    predictions = model.predict(new_data)
-    
-    # --- 6. Save Predictions ---
+    # Drop the RUL column from the processed data before predicting, as it's the target
+    X_new = new_data_processed.drop(columns=[config["data"]["target_column"]])
+    predictions = model.predict(X_new)
+
+    # --- 6. Inverse Transform Predictions ---
+    transformer_path = os.path.join("data/processed", "rul_transformer.joblib")
+    transformer = joblib.load(transformer_path)
+    predictions = transformer.inverse_transform(predictions.reshape(-1, 1))
+
+    # --- 7. Save Predictions ---
     prediction_df = pd.DataFrame(predictions, columns=['RUL_prediction'])
-    output_df = pd.concat([new_data, prediction_df], axis=1)
+    # Concatenate original new_data with predictions
+    output_df = pd.concat([new_data.reset_index(drop=True), prediction_df], axis=1)
     
     os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
     output_df.to_csv(output_csv_path, index=False)

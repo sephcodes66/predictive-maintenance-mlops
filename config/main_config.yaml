@@ -3,9 +3,11 @@
 
 # --- Data Parameters ---
 data:
+  processed_data_dir: "data/processed"
   feature_path: "data/processed/turbofan_features.csv"
   target_column: "RUL"
   test_size: 0.2
+  val_size: 0.15 # Added validation set size
   random_state: 42
   database_path: "turbofan.sqlite"
 

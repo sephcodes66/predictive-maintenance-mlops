@@ -24,61 +24,69 @@ def train_model(config: dict):
     """
 
     # --- 1. Load Data ---
-    features_df = build_features(db_path=config["data"]["database_path"])
-    X = features_df.drop(columns=[config["data"]["target_column"]])
-    y = features_df[config["data"]["target_column"]]
+    processed_data_dir = config["data"]["processed_data_dir"]
+    train_df = pd.read_csv(os.path.join(processed_data_dir, "train.csv"))
+    val_df = pd.read_csv(os.path.join(processed_data_dir, "val.csv"))
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=config["data"]["test_size"], random_state=config["data"]["random_state"]
-    )
+    # --- 2. Apply Feature Engineering ---
+    train_df_processed = build_features(train_df.copy(), is_training_data=True)
+    val_df_processed = build_features(val_df.copy(), is_training_data=False)
 
-    # --- 2. Train Model ---
+    X_train = train_df_processed.drop(columns=[config["data"]["target_column"]])
+    y_train = train_df_processed[config["data"]["target_column"]]
+
+    X_val = val_df_processed.drop(columns=[config["data"]["target_column"]])
+    y_val = val_df_processed[config["data"]["target_column"]]
+
+    # --- 3. Train Model ---
     mlflow.set_experiment(config["mlflow"]["experiment_name"])
 
     with mlflow.start_run() as run:
         mlflow.log_params(config["model"]["params"])
 
         model = xgb.XGBRegressor(**config["model"]["params"])
-        model.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False)
+        model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
 
-        # --- 3. Evaluate Model ---
-        y_pred = model.predict(X_test)
+        # --- 4. Evaluate Model ---
+        y_pred = model.predict(X_val)
 
         # Ensure specific columns are int64 for signature inference
         for col_name in ['unit_number', 'time_in_cycles', 'sensor_15', 'sensor_16', 'sensor_17', 'sensor_18']:
-            if col_name in X_test.columns:
-                X_test[col_name] = X_test[col_name].astype(int)
+            if col_name in X_val.columns:
+                X_val[col_name] = X_val[col_name].astype(int)
 
-        signature = infer_signature(X_test, y_pred)
+        signature = infer_signature(X_val, y_pred)
 
-        # --- 4. Log Metrics ---
-        mlflow.log_metric("mae", mean_absolute_error(y_test, y_pred))
-        mlflow.log_metric("mse", mean_squared_error(y_test, y_pred))
-        mlflow.log_metric("r2", r2_score(y_test, y_pred))
+        # --- 5. Log Metrics ---
+        mlflow.log_metric("mae", mean_absolute_error(y_val, y_pred))
+        mlflow.log_metric("mse", mean_squared_error(y_val, y_pred))
+        mlflow.log_metric("r2", r2_score(y_val, y_pred))
 
-        # --- 5. Log Artifacts ---
-        output_dir = config["visualization"]["output_dir"]
+        # --- 6. Log Artifacts ---
+        output_dir = os.path.abspath(config["visualization"]["output_dir"])
+        print(f"[train.py] Plot output directory: {output_dir}")
         os.makedirs(output_dir, exist_ok=True)
-        plot_feature_importance(model, f"{output_dir}/feature_importance.png")
+        plot_feature_importance(model, os.path.join(output_dir, "feature_importance_baseline.png"), dataset_name="Validation Set")
         plot_actual_vs_predicted(
-            y_test,
+            y_val,
             y_pred,
-            f"{output_dir}/actual_vs_predicted.png"
+            os.path.join(output_dir, "actual_vs_predicted_baseline.png"),
+            dataset_name="Validation Set"
         )
         mlflow.log_artifacts(output_dir)
 
-        # --- 6. Log Model ---
+        # --- 7. Log Model ---
         mlflow.xgboost.log_model(
             xgb_model=model,
             artifact_path="model",
             signature=signature,
-            input_example=X_test.iloc[[0]],
+            input_example=X_val.iloc[[0]],
             registered_model_name=config["model"]["name"],
         )
 
         print(f"Model logged to experiment: {config['mlflow']['experiment_name']}")
         print(f"Run ID: {run.info.run_id}")
 
-        # --- 7. Save the run ID ---
+        # --- 8. Save the run ID ---
         with open("mlruns/0/latest_run_id.txt", "w") as f:
             f.write(run.info.run_id)

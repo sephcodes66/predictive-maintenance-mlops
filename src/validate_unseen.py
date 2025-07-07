@@ -1,11 +1,13 @@
-
-
 import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import matplotlib.pyplot as plt
 import os
+import argparse
+import joblib
+from .visualize import plot_actual_vs_predicted
 
 def validate_unseen_predictions(predictions_path: str, ground_truth_path: str, output_dir: str):
+    output_dir = os.path.abspath(output_dir)
     """
     Validates the predictions on the unseen data against the ground truth.
 
@@ -20,9 +22,14 @@ def validate_unseen_predictions(predictions_path: str, ground_truth_path: str, o
 
     # --- 2. Extract Predictions and Ground Truth ---
     y_pred = predictions_df["RUL_prediction"]
-    y_true = ground_truth_df["RUL"]
+    y_true_transformed = ground_truth_df["RUL"]
 
-    # --- 3. Validate Predictions and Print Metrics ---
+    # --- 3. Inverse Transform Ground Truth ---
+    transformer_path = os.path.join("data/processed", "rul_transformer.joblib")
+    transformer = joblib.load(transformer_path)
+    y_true = transformer.inverse_transform(y_true_transformed.values.reshape(-1, 1)).flatten()
+
+    # --- 4. Validate Predictions and Print Metrics ---
     print("\n--- Unseen Data Validation Results ---")
     
     mse = mean_squared_error(y_true, y_pred)
@@ -33,26 +40,31 @@ def validate_unseen_predictions(predictions_path: str, ground_truth_path: str, o
     print(f"Mean Absolute Error: {mae:.4f}")
     print(f"R2 Score: {r2:.4f}")
 
-    # --- 4. Generate and Save Scatter Plot ---
+    # --- 5. Generate and Save Scatter Plot ---
     print("\nGenerating scatter plot for unseen data...")
+    print(f"[validate_unseen.py] Plot output directory: {output_dir}")
     
     os.makedirs(output_dir, exist_ok=True)
     plot_path = os.path.join(output_dir, "simulated_data_scatter_plot.png")
     
-    plt.figure(figsize=(8, 6))
-    plt.scatter(y_true, y_pred, alpha=0.5)
-    plt.xlabel("True RUL")
-    plt.ylabel("Predicted RUL")
-    plt.title("True vs. Predicted RUL on Unseen Data")
-    plt.savefig(plot_path)
-    plt.close()
+    plot_actual_vs_predicted(
+        y_true,
+        y_pred,
+        plot_path,
+        dataset_name="Unseen Data (Original Scale)"
+    )
     
     print(f"Scatter plot saved to: {plot_path}")
 
 if __name__ == "__main__":
-    validate_unseen_predictions(
-        predictions_path="data/predictions/unseen_predictions.csv",
-        ground_truth_path="path/to/your/ground_truth.csv", # Update this path
-        output_dir="validation_results"
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--predictions_path", required=True)
+    parser.add_argument("--ground_truth_path", required=True)
+    parser.add_argument("--output_dir", default="validation_results")
+    args = parser.parse_args()
 
+    validate_unseen_predictions(
+        predictions_path=args.predictions_path,
+        ground_truth_path=args.ground_truth_path,
+        output_dir=args.output_dir
+    )
