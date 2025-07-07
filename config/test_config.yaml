@@ -1,40 +1,30 @@
+# Test Configuration for the MLOps Predictive Maintenance Project
 
-# Configuration for the MLOps Predictive Maintenance Project - TEST
-
-# --- Data Parameters ---
 data:
+  processed_data_dir: "data/processed_test"
   target_column: "RUL"
-  n_samples: 100
-  n_features: 5
-  noise_level: 0.1
-  test_size: 0.5
+  test_size: 0.2
+  val_size: 0.15
   random_state: 42
   database_path: "turbofan_test.sqlite"
 
-# --- Model Parameters ---
 model:
-  name: "test_predictive_maintenance_model"
+  name: "predictive_maintenance_model_test"
   params:
-    tree_method: "hist"
+    objective: "reg:squarederror"
+    eval_metric: "rmse"
     n_estimators: 10
     learning_rate: 0.1
     max_depth: 3
-    subsample: 0.8
-    colsample_bytree: 0.8
-    eval_metric: "rmse"
 
-# --- Hyperparameter Tuning Parameters ---
 tuning:
   n_trials: 2
   objective_metric: "rmse"
   direction: "minimize"
-  sampler: "random"
-  pruner: "nop"
 
-# --- MLflow Parameters ---
 mlflow:
-  experiment_name: "Test_Predictive_Maintenance"
+  experiment_name: "Predictive Maintenance Test"
+  registry_uri: "databricks-uc"
 
-# --- Visualization Parameters ---
 visualization:
-  output_dir: "test_visualizations"
+  output_dir: "visualizations_test"
